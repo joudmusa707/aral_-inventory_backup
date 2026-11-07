@@ -1,4 +1,4 @@
-import 'package:aral_project/Admin/Dashboard/admin_dashboard.dart';
+import 'package:aral_project/Admin/DashboardPage/admin_dashboard.dart';
 import 'package:aral_project/Admin/providers/transaction_data.dart';
 import 'package:aral_project/Internet%20Connectivity/connectivity_badge.dart';
 import 'package:flutter/material.dart';
@@ -22,13 +22,18 @@ class _AdminRoutingState extends State<AdminRouting> {
   }
 
   int _currentIndex = 0;
-  final List<Widget> _screens = [const AdminDashboard()];
+  final List<String> _titles = ['Dashboard', 'Transactions', 'Reports'];
+  final List<Widget> _screens = [
+    const AdminDashboard(),
+    const Center(child: Text('Transactions Screen')),
+    const Center(child: Text('Reports Screen')),
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
-        title: const Text('Dashboard'),
+        title: Text(_titles[_currentIndex]),
         actions: [
           const ConnectivityBadge(),
           const SizedBox(width: 8),
