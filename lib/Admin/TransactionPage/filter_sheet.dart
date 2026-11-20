@@ -1,25 +1,19 @@
+import 'package:aral_project/Admin/providers/filter_provider.dart';
+import 'package:aral_project/Admin/providers/transaction_data.dart';
 import 'package:aral_project/Theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class FilterBottonSheetContent extends StatefulWidget {
+class FilterBottonSheetContent extends StatelessWidget {
   const FilterBottonSheetContent({super.key});
 
   @override
-  State<FilterBottonSheetContent> createState() =>
-      _FilterBottomSheetContentState();
-}
-
-class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
-  // State variables (nullable so they can be null/nothing selected by default)
-  String? selectedDate;
-  String? selectedMovement;
-  String? selectedWarehouse;
-  String? selectedSort;
-
-  @override
   Widget build(BuildContext context) {
-    bool isWh1Selected = selectedWarehouse == 'WH1';
-    bool isWh2Selected = selectedWarehouse == 'WH2';
+    // Watch the provider so the bottom sheet updates instantly
+    final filterProvider = context.watch<TransactionFilterProvider>();
+
+    bool isWh1Selected = filterProvider.selectedWarehouse == 'WH1';
+    bool isWh2Selected = filterProvider.selectedWarehouse == 'WH2';
 
     return Container(
       decoration: BoxDecoration(
@@ -58,35 +52,28 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: AppTheme.primaryColor,
-                    ),
-                    child: const Text(
-                      'Active',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                  if (filterProvider.activeFiltersCount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: AppTheme.primaryColor,
+                      ),
+                      child: Text(
+                        'Active (${filterProvider.activeFiltersCount})',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () {
-                      setState(() {
-                        // Reset all selections to null (nothing selected)
-                        selectedDate = null;
-                        selectedMovement = null;
-                        selectedWarehouse = null;
-                        selectedSort = null;
-                      });
-                    },
+                    onPressed: () => filterProvider.resetAll(),
                     child: Text(
                       'Reset all',
                       style: TextStyle(
@@ -120,10 +107,10 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                     ),
                   ),
                   Text(
-                    selectedDate ?? 'Select Date',
+                    filterProvider.selectedDate ?? 'Select Date',
                     style: TextStyle(
                       fontSize: 14,
-                      color: selectedDate != null
+                      color: filterProvider.selectedDate != null
                           ? AppTheme.secondaryColor
                           : AppTheme.textColorSecondary,
                       fontWeight: FontWeight.w500,
@@ -140,48 +127,58 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                 children: [
                   _buildCustomChoiceChip(
                     'Today',
-                    selectedDate == 'Today',
-                    (val) => setState(
-                      () => selectedDate = selectedDate == 'Today'
-                          ? null
-                          : 'Today',
-                    ),
+                    filterProvider.selectedDate == 'Today',
+                    (val) => filterProvider.setDate('Today'),
                   ),
                   _buildCustomChoiceChip(
                     'Yesterday',
-                    selectedDate == 'Yesterday',
-                    (val) => setState(
-                      () => selectedDate = selectedDate == 'Yesterday'
-                          ? null
-                          : 'Yesterday',
-                    ),
+                    filterProvider.selectedDate == 'Yesterday',
+                    (val) => filterProvider.setDate('Yesterday'),
                   ),
                   _buildCustomChoiceChip(
                     'Last 7 days',
-                    selectedDate == 'Last 7 days',
-                    (val) => setState(
-                      () => selectedDate = selectedDate == 'Last 7 days'
-                          ? null
-                          : 'Last 7 days',
-                    ),
+                    filterProvider.selectedDate == 'Last 7 days',
+                    (val) => filterProvider.setDate('Last 7 days'),
                   ),
                   _buildCustomChoiceChip(
                     'This month',
-                    selectedDate == 'This month',
-                    (val) => setState(
-                      () => selectedDate = selectedDate == 'This month'
-                          ? null
-                          : 'This month',
-                    ),
+                    filterProvider.selectedDate == 'This month',
+                    (val) => filterProvider.setDate('This month'),
                   ),
                   _buildCustomChoiceChip(
                     'Custom range...',
-                    selectedDate == 'Custom range...',
-                    (val) => setState(
-                      () => selectedDate = selectedDate == 'Custom range...'
-                          ? null
-                          : 'Custom range...',
-                    ),
+                    filterProvider.selectedDate != null &&
+                        ![
+                          'Today',
+                          'Yesterday',
+                          'Last 7 days',
+                          'This month',
+                        ].contains(filterProvider.selectedDate),
+                    (val) async {
+                      // Show Flutter's built-in date range picker
+                      final DateTimeRange? picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        currentDate: DateTime.now(),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: AppTheme.primaryColor,
+                                onPrimary: Colors.white,
+                                surface: AppTheme.surfaceColor,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+
+                      if (picked != null) {
+                        filterProvider.setCustomDateRange(picked);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -200,10 +197,10 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                     ),
                   ),
                   Text(
-                    selectedMovement ?? 'Select Movement',
+                    filterProvider.selectedMovement ?? 'Select Movement',
                     style: TextStyle(
                       fontSize: 14,
-                      color: selectedMovement != null
+                      color: filterProvider.selectedMovement != null
                           ? AppTheme.secondaryColor
                           : AppTheme.textColorSecondary,
                       fontWeight: FontWeight.w500,
@@ -220,35 +217,60 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                 children: [
                   _buildCustomChoiceChip(
                     'IN • received',
-                    selectedMovement == 'IN • received',
-                    (val) => setState(
-                      () =>
-                          selectedMovement = selectedMovement == 'IN • received'
-                          ? null
-                          : 'IN • received',
-                    ),
+                    filterProvider.selectedMovement == 'IN • received',
+                    (val) => filterProvider.setMovement('IN • received'),
                   ),
                   _buildCustomChoiceChip(
                     'OUT • issued',
-                    selectedMovement == 'OUT • issued',
-                    (val) => setState(
-                      () =>
-                          selectedMovement = selectedMovement == 'OUT • issued'
-                          ? null
-                          : 'OUT • issued',
+                    filterProvider.selectedMovement == 'OUT • issued',
+                    (val) => filterProvider.setMovement('OUT • issued'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Length Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Length',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textColorPrimary,
                     ),
                   ),
-                  _buildCustomChoiceChip(
-                    'Reversals',
-                    selectedMovement == 'Reversals',
-                    (val) => setState(
-                      () => selectedMovement = selectedMovement == 'Reversals'
-                          ? null
-                          : 'Reversals',
+                  Text(
+                    filterProvider.selectedLength != null
+                        ? '${filterProvider.selectedLength} Selected'
+                        : 'Select Length',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: filterProvider.selectedLength != null
+                          ? AppTheme.secondaryColor
+                          : AppTheme.textColorSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+
+              // Frequently used length chips based on your dataset
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var len in [6.3, 5.7, 6.0, 6.8, 5.8, 5.0])
+                    _buildCustomChoiceChip(
+                      '$len',
+                      filterProvider.selectedLength == len,
+                      (val) => filterProvider.setLength(len),
+                    ),
+                ],
+              ),
+
               const SizedBox(height: 20),
 
               // Warehouse & Location Section
@@ -264,12 +286,12 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                     ),
                   ),
                   Text(
-                    selectedWarehouse != null
-                        ? '$selectedWarehouse • Row B'
+                    filterProvider.selectedWarehouse != null
+                        ? '${filterProvider.selectedWarehouse} Selected'
                         : 'Select Location',
                     style: TextStyle(
                       fontSize: 14,
-                      color: selectedWarehouse != null
+                      color: filterProvider.selectedWarehouse != null
                           ? AppTheme.secondaryColor
                           : AppTheme.textColorSecondary,
                       fontWeight: FontWeight.w500,
@@ -287,20 +309,12 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
               ),
               const SizedBox(height: 12),
 
-              // Warehouse Selection Cards Row (Toggleable selection)
+              // Warehouse Selection Cards Row
               Row(
                 children: [
-                  // WH1 Card
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          // Tap again to deselect or switch
-                          selectedWarehouse = selectedWarehouse == 'WH1'
-                              ? null
-                              : 'WH1';
-                        });
-                      },
+                      onTap: () => filterProvider.setWarehouse('WH1'),
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -359,17 +373,9 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // WH2 Card
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedWarehouse = selectedWarehouse == 'WH2'
-                              ? null
-                              : 'WH2';
-                        });
-                      },
+                      onTap: () => filterProvider.setWarehouse('WH2'),
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -442,48 +448,50 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
               ),
               const SizedBox(height: 12),
 
-              // Sort Chips
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   _buildCustomChoiceChip(
                     'Newest first',
-                    selectedSort == 'Newest first',
-                    (val) => setState(
-                      () => selectedSort = selectedSort == 'Newest first'
-                          ? null
-                          : 'Newest first',
-                    ),
+                    filterProvider.selectedSort == 'Newest first',
+                    (val) => filterProvider.setSort('Newest first'),
                   ),
                   _buildCustomChoiceChip(
                     'Oldest first',
-                    selectedSort == 'Oldest first',
-                    (val) => setState(
-                      () => selectedSort = selectedSort == 'Oldest first'
-                          ? null
-                          : 'Oldest first',
-                    ),
+                    filterProvider.selectedSort == 'Oldest first',
+                    (val) => filterProvider.setSort('Oldest first'),
                   ),
                   _buildCustomChoiceChip(
                     'Largest quantity',
-                    selectedSort == 'Largest quantity',
-                    (val) => setState(
-                      () => selectedSort = selectedSort == 'Largest quantity'
-                          ? null
-                          : 'Largest quantity',
-                    ),
+                    filterProvider.selectedSort == 'Largest quantity',
+                    (val) => filterProvider.setSort('Largest quantity'),
                   ),
                 ],
               ),
 
               const SizedBox(height: 24),
 
-              // Show Results Pill Button
+              // Apply Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Provider.of<TransactionData>(
+                      context,
+                      listen: false,
+                    ).setFilters(
+                      date: filterProvider.selectedDate,
+                      movement: filterProvider.selectedMovement,
+                      customDateRange:
+                          filterProvider.customDateRange, // <-- Pass range here
+                      warehouse: filterProvider.selectedWarehouse,
+                      length:
+                          filterProvider.selectedLength, // <-- Pass length here
+                      sort: filterProvider.selectedSort,
+                    );
+                    Navigator.pop(context);
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -491,7 +499,7 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Show 23 results',
+                    'Apply Filters',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -507,7 +515,6 @@ class _FilterBottomSheetContentState extends State<FilterBottonSheetContent> {
     );
   }
 
-  // ChoiceChip helper
   Widget _buildCustomChoiceChip(
     String label,
     bool isSelected,

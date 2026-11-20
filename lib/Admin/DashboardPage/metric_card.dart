@@ -27,10 +27,12 @@ class MetricCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: theme.colorScheme.secondary.withValues(alpha: 0.15),
+                // KPI icons use the navy family (primaryContainer + primary), not the
+                // orange accent: orange stays for small highlights only.
+                color: theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: theme.colorScheme.secondary, size: 20),
+              child: Icon(icon, color: theme.colorScheme.primary, size: 20),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

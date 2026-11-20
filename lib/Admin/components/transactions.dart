@@ -1,77 +1,113 @@
 import 'package:aral_project/Admin/Models/transactions_model.dart';
-import 'package:aral_project/Admin/providers/transaction_data.dart';
+import 'package:aral_project/Admin/TransactionDetailPage/transaction_detail.dart';
+import 'package:aral_project/Theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
 class TransactionsCard extends StatelessWidget {
-  const TransactionsCard({super.key});
+  final TransactionModel transaction;
+  const TransactionsCard(this.transaction, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TransactionData>(
-      builder: (context, transactionData, child) {
-        if (transactionData.isLoading) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+    // Determine the amount text
+    final String amountText = transaction.direction == 'IN'
+        ? "+${transaction.quantity}"
+        : "-${transaction.quantity}";
 
-        if (transactionData.transactionDataList.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text(
-                'No transactions found in database.',
-                style: TextStyle(color: Colors.grey),
+    // Determine the color and text decorations based on transaction status
+    Color amountColor;
+    TextDecoration? textDecoration;
+    Color iconContainerColor;
+
+    if (transaction.reversed) {
+      // 1. REVERSED transaction: Faded original color with a strikethrough
+      final bool isIn = transaction.direction == 'IN';
+      amountColor = isIn
+          ? Colors.green.shade700.withValues(alpha: 0.4)
+          : Theme.of(context).colorScheme.error.withValues(alpha: 0.4);
+      textDecoration = TextDecoration.lineThrough;
+      iconContainerColor =
+          (isIn ? Colors.green : Theme.of(context).colorScheme.error)
+              .withValues(alpha: 0.08);
+    } else if (transaction.isReversal) {
+      // 2. REVERSAL transaction: Yellow theme color for text and soft yellow icon container
+      amountColor = AppTheme.warningColor;
+      textDecoration = null;
+      iconContainerColor = AppTheme.warningBorder.withValues(alpha: 0.6);
+    } else {
+      // 3. NORMAL transaction: Standard green for IN, Red for OUT
+      final bool isIn = transaction.direction == 'IN';
+      amountColor = isIn
+          ? Colors.green.shade700
+          : Theme.of(context).colorScheme.error;
+      textDecoration = null;
+      iconContainerColor =
+          (isIn ? Colors.green : Theme.of(context).colorScheme.error)
+              .withValues(alpha: 0.15);
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TransactionDetailPage(transaction: transaction),
+          ),
+        ),
+        title: Text(transaction.itemCode),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconContainerColor,
+            shape: BoxShape.circle,
+          ),
+          child: transaction.direction == 'IN'
+              ? Icon(Icons.arrow_downward, color: amountColor)
+              : Icon(Icons.arrow_upward, color: amountColor),
+        ),
+        subtitle: Text(
+          "Location : ${transaction.locationCode}\n ${DateFormat('d MMM, yyyy').format(transaction.timestamp.toLocal())}",
+        ),
+        // ---> ADDED STOCK DISPLAY HERE IN TRAILING <---
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              amountText,
+              style: TextStyle(
+                fontSize: Theme.of(context).textTheme.titleMedium?.fontSize,
+                fontWeight: FontWeight.bold,
+                color: amountColor,
+                decoration: textDecoration,
+                decorationColor: amountColor,
               ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          itemCount: transactionData.transactionDataList.length,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (context, index) {
-            TransactionModel tx = transactionData.transactionDataList[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              child: ListTile(
-                title: Text(tx.itemCode),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: tx.direction == "IN"
-                        ? Colors.green.withValues(alpha: 0.15)
-                        : Theme.of(context).colorScheme.error
-                              .withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: tx.direction == 'IN'
-                      ? Icon(Icons.arrow_downward)
-                      : Icon(Icons.arrow_upward),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 13,
+                  color: AppTheme.textColorSecondary,
                 ),
-                subtitle: Text(
-                  "Location =: ${tx.locationCode}\n${tx.workerId} * ${DateFormat('d MMM, HH:mm').format(tx.timestamp.toLocal())} ",
-                ),
-                trailing: Text(
-                  tx.direction == 'IN' ? "+${tx.quantity}" : "-${tx.quantity}",
-                  style: TextStyle(
-                    fontSize: Theme.of(context).textTheme.titleMedium?.fontSize,
-                    color: tx.direction == 'IN'
-                        ? Colors.green.shade700
-                        : Theme.of(context).colorScheme.error,
+                const SizedBox(width: 3),
+                Text(
+                  "Stock: ${transaction.stock}",
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    //fontSize: 11,
+                    color: AppTheme.textColorSecondary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

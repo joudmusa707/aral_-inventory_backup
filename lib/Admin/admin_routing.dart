@@ -1,4 +1,5 @@
 import 'package:aral_project/Admin/DashboardPage/admin_dashboard.dart';
+import 'package:aral_project/Admin/ReportsPage/reports_page.dart';
 import 'package:aral_project/Admin/TransactionPage/all_transactions.dart';
 import 'package:aral_project/Admin/providers/transaction_data.dart';
 import 'package:aral_project/Internet%20Connectivity/connectivity_badge.dart';
@@ -34,11 +35,10 @@ class _AdminRoutingState extends State<AdminRouting> {
 
   @override
   Widget build(BuildContext context) {
-    // Move _screens inside build() so it can safely reference _onTabChanged
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       AdminDashboard(onNavigateToTransactions: _onTabChanged),
       const AllTransactionsPage(),
-      const Center(child: Text('Reports Screen')),
+      const ReportsPage(), // Dina's Reports page (was a placeholder text)
     ];
 
     return Scaffold(
@@ -52,15 +52,12 @@ class _AdminRoutingState extends State<AdminRouting> {
           const SizedBox(width: 10),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
+      // Colors, icon sizes and type now come from
+      // bottomNavigationBarTheme in Theme/theme.dart (active tab = orange).
+      // No hard-coded colors here → change the theme once, the bar follows.
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFF1F5F9),
-        selectedItemColor: const Color(0xFF78350F),
-        unselectedItemColor: const Color(0xFF475569),
-        selectedIconTheme: const IconThemeData(size: 26),
-        unselectedIconTheme: const IconThemeData(size: 24),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded),
@@ -75,7 +72,7 @@ class _AdminRoutingState extends State<AdminRouting> {
             label: 'Reports',
           ),
         ],
-        onTap: _onTabChanged, // Cleanly reuse your method here too
+        onTap: _onTabChanged,
       ),
     );
   }
